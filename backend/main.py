@@ -22,7 +22,7 @@ def load_env():
 load_env()
 
 DATA_DIR = os.path.join(
-    os.path.dirname(__file__), os.environ.get("DATA_DIR", "../data")
+    os.path.dirname(__file__), os.environ.get("DATA_DIR", "/data")
 )
 questions_data = {}
 chapters_data = {}
