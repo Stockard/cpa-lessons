@@ -21,9 +21,7 @@ def load_env():
 
 load_env()
 
-DATA_DIR = os.path.join(
-    os.path.dirname(__file__), os.environ.get("DATA_DIR", "/data")
-)
+DATA_DIR = os.path.join(os.path.dirname(__file__), os.environ.get("DATA_DIR", "/data"))
 questions_data = {}
 chapters_data = {}
 user_progress = {}
@@ -41,7 +39,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8081",
-        "https://cpapath.vercel.app",
+        "http://localhost:8000",
+        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
