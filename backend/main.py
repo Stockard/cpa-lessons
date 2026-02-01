@@ -57,17 +57,24 @@ async def add_cors_headers(request, call_next):
 
 def load_chapters_list():
     chapters = []
-    for i in range(1, 29):
-        chapter_file = os.path.join(DATA_DIR, f"chapter_{i}", "index.json")
+    for i in range(1, 31):
+        chapter_dir = os.path.join(DATA_DIR, f"chapter_{i}")
+        chapter_file = os.path.join(chapter_dir, "index.json")
         if os.path.exists(chapter_file):
             with open(chapter_file, "r", encoding="utf-8") as f:
                 ch_data = json.load(f)
                 ch = ch_data.get("chapter", {})
+                lesson_files = [
+                    f
+                    for f in os.listdir(chapter_dir)
+                    if f.startswith("lesson_") and f.endswith(".json")
+                ]
+                lessons_count = len(lesson_files)
                 chapters.append(
                     {
                         "chapter_id": ch.get("chapter_id", str(i)),
                         "title": ch.get("title", f"Chapter {i}"),
-                        "lessons_count": ch.get("total_lessons", 0),
+                        "lessons_count": lessons_count,
                         "total_xp": ch.get("total_xp", 0),
                         "exam_weight": ch.get("exam_weight", "约1分"),
                         "difficulty": ch.get("difficulty", 1),

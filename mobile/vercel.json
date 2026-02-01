@@ -1,7 +1,6 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "expo export -p web",
   "outputDirectory": "dist",
-  "framework": "expo",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://your-railway-app.railway.app/api/$1" }
   ]
