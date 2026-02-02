@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-
 def load_env():
     env_file = os.path.join(os.path.dirname(__file__), "..", "..", "data", ".env")
     if os.path.exists(env_file):
