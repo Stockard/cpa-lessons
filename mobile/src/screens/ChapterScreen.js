@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { chaptersApi, userApi } from '../services/api';
 
 const ChapterScreen = ({ route, navigation }) => {
@@ -9,11 +10,6 @@ const ChapterScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [completedLessons, setCompletedLessons] = useState({});
   const scrollRef = useRef(null);
-
-  useEffect(() => {
-    loadChapterData();
-    loadProgress();
-  }, [chapterId]);
 
   const loadChapterData = async () => {
     try {
@@ -32,12 +28,20 @@ const ChapterScreen = ({ route, navigation }) => {
       const res = await userApi.getProgress();
       const lessons = res.data?.lessons || {};
       setCompletedLessons(lessons);
-      console.log('Loaded completed lessons:', Object.keys(lessons));
     } catch (error) {
-      console.log('Error loading progress:', error.message);
       setCompletedLessons({});
     }
   };
+
+  useEffect(() => {
+    loadChapterData();
+  }, [chapterId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProgress();
+    }, [])
+  );
 
   if (loading) {
     return <View style={styles.container}><Text style={styles.loading}>加载中...</Text></View>;
@@ -47,9 +51,7 @@ const ChapterScreen = ({ route, navigation }) => {
   const colors = ['#1cb964', '#5c7cfa', '#f06595', '#fcc419', '#20c997', '#ff6b6b'];
 
   const isLessonCompleted = (lessonNum) => {
-    const completed = !!completedLessons[lessonNum];
-    console.log(`Checking ${lessonNum}: ${completed ? 'completed' : 'not completed'}`);
-    return completed;
+    return !!completedLessons[lessonNum];
   };
 
   return (

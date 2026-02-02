@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { userApi, chaptersApi } from '../services/api';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { userApi, chaptersApi, getOrCreateVisitorId } from '../services/api';
 import {
   calculateLevel,
   calculateStats,
@@ -27,9 +28,12 @@ export const AppProvider = ({ children }) => {
   const [achievements, setAchievements] = useState([]);
   const [dailyProgress, setDailyProgress] = useState({ goals: {}, completed: false });
   const [newAchievements, setNewAchievements] = useState([]);
+  const [loadError, setLoadError] = useState(null);
 
   const loadData = async () => {
     try {
+      const visitorId = await getOrCreateVisitorId();
+
       const [userRes, progressRes, chaptersRes] = await Promise.all([
         userApi.getProfile(),
         userApi.getProgress(),
@@ -71,6 +75,7 @@ export const AppProvider = ({ children }) => {
       setDailyProgress(daily);
       
     } catch (error) {
+      setLoadError(error?.message || 'Unknown error loading data');
       setUser({ 
         username: 'CPA学习者', 
         level: 1, 
@@ -114,6 +119,27 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Simple error UI when offline or backend fails to load data
+  if (loadError) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ marginBottom: 8, fontWeight: 'bold' }}>Data load error</Text>
+        <Text>{loadError}</Text>
+        <Text style={{ marginTop: 16 }} onPress={loadData} selectable>Tap to retry</Text>
+      </View>
+    );
+  }
+
+  // Show loading indicator while data is being fetched
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1cb964" />
+        <Text style={{ marginTop: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
 
   const completeLesson = async (lessonId, score, xpEarned) => {
     const bonus = getStreakBonus(streak);
@@ -248,3 +274,12 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+});
