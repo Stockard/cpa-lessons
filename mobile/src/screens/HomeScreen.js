@@ -138,8 +138,13 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>薄弱点强化</Text>
           <TouchableOpacity style={styles.weaknessCard} onPress={() => navigation.navigate('Practice', { wrongOnly: true })}>
             <Ionicons name="fitness" size={24} color="#f06595" />
-            <Text style={styles.weaknessText}>开始针对性练习</Text>
+            <Text style={styles.weaknessText}>错题巩固</Text>
             <Ionicons name="arrow-forward" size={20} color="#f06595" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.weaknessCard, { marginTop: 8, borderColor: '#5c7cfa' }]} onPress={() => navigation.navigate('Practice', { reviewedOnly: true })}>
+            <Ionicons name="book" size={24} color="#5c7cfa" />
+            <Text style={[styles.weaknessText, { color: '#5c7cfa' }]}>复习已学</Text>
+            <Ionicons name="arrow-forward" size={20} color="#5c7cfa" />
           </TouchableOpacity>
         </View>
       </ScrollView>

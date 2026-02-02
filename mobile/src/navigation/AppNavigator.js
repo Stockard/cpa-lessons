@@ -26,14 +26,18 @@ const TabNavigator = () => (
       tabBarIcon: ({ focused, color, size }) => {
         let iconName;
         if (route.name === '首页') iconName = focused ? 'home' : 'home-outline';
-        else if (route.name === '练习') iconName = focused ? 'fitness' : 'fitness-outline';
+        else if (route.name === '复习') iconName = focused ? 'book' : 'book-outline';
         else if (route.name === '我的') iconName = focused ? 'person' : 'person-outline';
         return <Ionicons name={iconName} size={size} color={color} />;
       },
     })}
   >
     <Tab.Screen name="首页" component={HomeScreen} />
-    <Tab.Screen name="练习" component={PracticeScreen} />
+    <Tab.Screen 
+      name="复习" 
+      component={PracticeScreen} 
+      initialParams={{ reviewedOnly: true }}
+    />
     <Tab.Screen name="我的" component={ProfileScreen} />
   </Tab.Navigator>
 );

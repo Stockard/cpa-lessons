@@ -13,7 +13,7 @@ const LessonScreen = ({ route, navigation }) => {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [normalizedExercises, setNormalizedExercises] = useState([]);
-  const { completeLesson } = useApp();
+  const { completeLesson, submitAnswer } = useApp();
 
   useEffect(() => {
     loadLesson();
@@ -55,7 +55,7 @@ const LessonScreen = ({ route, navigation }) => {
     setSelectedAnswers({ ...selectedAnswers, [currentExercise]: answer });
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     const exercise = normalizedExercises[currentExercise];
     const userAnswer = selectedAnswers[currentExercise];
     let isCorrect = false;
@@ -63,13 +63,16 @@ const LessonScreen = ({ route, navigation }) => {
     if (exercise.type === 'single_choice') {
       isCorrect = userAnswer === exercise.correct_answer;
     } else if (exercise.type === 'multi_choice') {
-      isCorrect = userAnswer?.sort().join('') === exercise.correct_answer.sort().join('');
+      const correctSet = new Set(exercise.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+      const userSet = new Set(userAnswer ? userAnswer.map(s => s.trim()).filter(s => s) : []);
+      isCorrect = correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
     } else if (exercise.type === 'true_false' || exercise.type === 'judgment') {
       isCorrect = userAnswer === exercise.correct_answer;
     } else if (exercise.type === 'fill_in_blank') {
       isCorrect = exercise.correct_answer.includes(userAnswer);
     }
 
+    await submitAnswer(exercise.id, isCorrect);
     setShowResult(true);
     if (isCorrect) setScore(s => s + 1);
   };
@@ -126,10 +129,14 @@ const LessonScreen = ({ route, navigation }) => {
         )}
 
         <View style={styles.exerciseBox}>
-          <Text style={styles.exerciseLabel}>练习 {currentExercise + 1}</Text>
+          <Text style={styles.exerciseLabel}>练习 {currentExercise + 1}{exercise.type === 'multi_choice' ? ' (多选)' : ''}</Text>
           <Text style={styles.question}>{exercise.question}</Text>
 
-          {(exercise.type === 'single_choice' || exercise.type === 'multi_choice') && exercise.options && exercise.options.length > 0 && exercise.options.map((opt, i) => {
+          {(exercise.type === 'multi_choice') && (
+            <Text style={styles.multiHint}>提示：可选择多个答案</Text>
+          )}
+
+          {(exercise.type === 'single_choice') && exercise.options && exercise.options.length > 0 && exercise.options.map((opt, i) => {
             const optLetter = String.fromCharCode(65 + i);
             const isSelected = selectedAnswers[currentExercise] === optLetter;
             let btnStyle = styles.optionBtn;
@@ -212,7 +219,16 @@ const LessonScreen = ({ route, navigation }) => {
           {showResult && (
             <View style={styles.resultBox}>
               <Text style={styles.resultText}>
-                {selectedAnswers[currentExercise] === exercise.correct_answer ? '✓ 正确！' : `✗ 正确答案是: ${exercise.correct_answer}`}
+                {(() => {
+                  if (exercise.type === 'multi_choice') {
+                    const correctSet = new Set(exercise.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+                    const userSet = new Set(selectedAnswers[currentExercise] ? selectedAnswers[currentExercise].map(s => s.trim()).filter(s => s) : []);
+                    const isCorrect = correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
+                    const correctStr = [...correctSet].sort().join(',');
+                    return isCorrect ? '✓ 正确！' : `✗ 正确答案是: ${correctStr}`;
+                  }
+                  return selectedAnswers[currentExercise] === exercise.correct_answer ? '✓ 正确！' : `✗ 正确答案是: ${exercise.correct_answer}`;
+                })()}
               </Text>
             </View>
           )}
@@ -263,6 +279,7 @@ const styles = StyleSheet.create({
   keyword: { backgroundColor: '#f5f5f5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginRight: 8, marginTop: 8, fontSize: 13, color: '#666' },
   exerciseBox: { backgroundColor: '#fff', padding: 16, borderRadius: 12 },
   exerciseLabel: { fontSize: 13, fontWeight: '600', color: '#1cb964', marginBottom: 12 },
+  multiHint: { fontSize: 13, color: '#666', marginBottom: 12, fontStyle: 'italic' },
   question: { fontSize: 17, fontWeight: '600', color: '#333', marginBottom: 16, lineHeight: 24 },
   optionBtn: { padding: 14, backgroundColor: '#f5f5f5', borderRadius: 10, marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
   optionText: { fontSize: 15, color: '#333' },

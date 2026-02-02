@@ -22,7 +22,8 @@ const PracticeScreen = ({ route, navigation }) => {
 
   const loadQuestions = async () => {
     try {
-      const params = wrongOnly ? { wrong_only: true } : {};
+      const params = {};
+      if (wrongOnly) params.wrong_only = true;
       const res = await questionsApi.get(params);
       setQuestions(res.data.questions || getMockQuestions());
     } catch (error) {
@@ -49,6 +50,10 @@ const PracticeScreen = ({ route, navigation }) => {
 
     if (question.type === 'single_choice') {
       isCorrect = selectedAnswer === question.correct_answer;
+    } else if (question.type === 'multi_choice') {
+      const correctSet = new Set(question.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+      const userSet = new Set(selectedAnswer ? selectedAnswer.map(s => s.trim()).filter(s => s) : []);
+      isCorrect = correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
     } else if (question.type === 'judgment') {
       isCorrect = selectedAnswer === question.correct_answer;
     }
@@ -117,10 +122,17 @@ const PracticeScreen = ({ route, navigation }) => {
         <View style={styles.questionCard}>
           <View style={styles.typeTag}>
             <Text style={styles.typeText}>
-              {wrongOnly ? '错题巩固' : (question.type === 'single_choice' ? '单选题' : '判断题')}
+              {wrongOnly ? '错题巩固' : (
+              question.type === 'single_choice' ? '单选题' : 
+              question.type === 'multi_choice' ? '多选题' : '判断题'
+            )}
             </Text>
           </View>
           <Text style={styles.questionText}>{question.question}</Text>
+
+          {question.type === 'multi_choice' && (
+            <Text style={styles.multiHint}>提示：可选择多个答案</Text>
+          )}
 
           {question.type === 'single_choice' && question.options?.map((opt, i) => {
             const optLetter = String.fromCharCode(65 + i);
@@ -143,6 +155,41 @@ const PracticeScreen = ({ route, navigation }) => {
 
             return (
               <TouchableOpacity key={i} style={btnStyle} onPress={() => handleAnswer(optLetter)} disabled={showResult}>
+                <Text style={textStyle}>{opt}</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {question.type === 'multi_choice' && question.options?.map((opt, i) => {
+            const optLetter = String.fromCharCode(65 + i);
+            const isSelected = selectedAnswer?.includes(optLetter);
+            let btnStyle = styles.optionBtn;
+            let textStyle = styles.optionText;
+
+            const correctSet = new Set(question.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+
+            if (showResult) {
+              if (correctSet.has(optLetter)) {
+                btnStyle = [styles.optionBtn, styles.correctBtn];
+                textStyle = [styles.optionText, styles.correctText];
+              } else if (isSelected) {
+                btnStyle = [styles.optionBtn, styles.wrongBtn];
+                textStyle = [styles.optionText, styles.wrongText];
+              }
+            } else if (isSelected) {
+              btnStyle = [styles.optionBtn, styles.selectedBtn];
+              textStyle = [styles.optionText, styles.selectedText];
+            }
+
+            return (
+              <TouchableOpacity key={i} style={btnStyle} onPress={() => {
+                if (showResult) return;
+                const current = selectedAnswer || [];
+                const updated = current.includes(optLetter)
+                  ? current.filter(a => a !== optLetter)
+                  : [...current, optLetter];
+                handleAnswer(updated);
+              }} disabled={showResult}>
                 <Text style={textStyle}>{opt}</Text>
               </TouchableOpacity>
             );
@@ -172,9 +219,29 @@ const PracticeScreen = ({ route, navigation }) => {
 
           {showResult && (
             <View style={styles.resultBox}>
-              <Ionicons name={selectedAnswer === question.correct_answer ? "checkmark-circle" : "close-circle"} size={24} color={selectedAnswer === question.correct_answer ? "#1cb964" : "#f06595"} />
+              <Ionicons name={(question.type === 'multi_choice' 
+                ? (() => {
+                    const correctSet = new Set(question.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+                    const userSet = new Set(selectedAnswer ? selectedAnswer.map(s => s.trim()).filter(s => s) : []);
+                    return correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
+                  })()
+                : selectedAnswer === question.correct_answer) ? "checkmark-circle" : "close-circle"} size={24} color={(question.type === 'multi_choice' 
+                ? (() => {
+                    const correctSet = new Set(question.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+                    const userSet = new Set(selectedAnswer ? selectedAnswer.map(s => s.trim()).filter(s => s) : []);
+                    return correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
+                  })()
+                : selectedAnswer === question.correct_answer) ? "#1cb964" : "#f06595"} />
               <Text style={styles.resultText}>
-                {selectedAnswer === question.correct_answer ? '正确！' : `正确答案是 ${question.correct_answer === 'true' ? '正确' : question.correct_answer}`}
+                {(question.type === 'multi_choice' 
+                  ? (() => {
+                      const correctSet = new Set(question.correct_answer.split(/[,|]/).map(s => s.trim()).filter(s => s));
+                      const userSet = new Set(selectedAnswer ? selectedAnswer.map(s => s.trim()).filter(s => s) : []);
+                      const isCorrect = correctSet.size === userSet.size && [...correctSet].every(x => userSet.has(x));
+                      const correctStr = [...correctSet].sort().join(',');
+                      return isCorrect ? '正确！' : `正确答案是 ${correctStr}`;
+                    })()
+                  : selectedAnswer === question.correct_answer ? '正确！' : `正确答案是 ${question.correct_answer === 'true' ? '正确' : question.correct_answer}`)}
               </Text>
             </View>
           )}
@@ -221,6 +288,7 @@ const styles = StyleSheet.create({
   questionCard: { backgroundColor: '#fff', padding: 20, borderRadius: 12 },
   typeTag: { backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start', marginBottom: 12 },
   typeText: { fontSize: 12, color: '#1cb964', fontWeight: '600' },
+  multiHint: { fontSize: 13, color: '#666', marginBottom: 16, fontStyle: 'italic' },
   questionText: { fontSize: 17, fontWeight: '600', color: '#333', lineHeight: 24, marginBottom: 20 },
   optionBtn: { padding: 14, backgroundColor: '#f5f5f5', borderRadius: 10, marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
   optionText: { fontSize: 15, color: '#333' },

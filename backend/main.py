@@ -197,11 +197,6 @@ def load_data():
     chapters_data = load_chapters_list()
 
 
-def save_user_progress(user_id):
-    if user_id in user_progress_cache:
-        save_user_data(user_id)
-
-
 @app.get("/")
 async def root():
     return {"message": "CPA_PATH API", "version": "1.0.0"}
@@ -264,6 +259,7 @@ async def get_questions(
     type: Optional[str] = None,
     difficulty: Optional[int] = None,
     wrong_only: Optional[bool] = None,
+    reviewed_only: Optional[bool] = False,
 ):
     questions = questions_data.get("questions", [])
 
@@ -411,7 +407,7 @@ async def complete_lesson(request: Request, data: dict):
     if "achievements" not in user_data["progress"]:
         user_data["progress"]["achievements"] = []
 
-    save_user_progress(user_id)
+    save_user_data(user_id)
     return {
         "success": True,
         "xp_earned": xp_earned,
@@ -477,7 +473,7 @@ async def submit_answer(request: Request, data: dict):
 
         user_data["profile"]["last_active_date"] = today
 
-    save_user_progress(user_id)
+    save_user_data(user_id)
     return {
         "success": True,
         "lives": user_data["profile"]["lives"],
